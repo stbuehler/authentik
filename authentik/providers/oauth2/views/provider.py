@@ -8,6 +8,7 @@ from django.views import View
 from guardian.shortcuts import get_anonymous_user
 from structlog.stdlib import get_logger
 
+from authentik.brands.utils import get_brand_for_request
 from authentik.common.oauth.constants import (
     ACR_AUTHENTIK_DEFAULT,
     GRANT_TYPE_AUTHORIZATION_CODE,
@@ -38,8 +39,9 @@ class ProviderInfoView(View):
 
     provider: OAuth2Provider
 
-    def get_info(self, provider: OAuth2Provider) -> dict[str, Any]:
+    def get_info(self, request: HttpRequest, provider: OAuth2Provider) -> dict[str, Any]:
         """Get dictionary for OpenID Connect information"""
+        brand = get_brand_for_request(request)
         scopes = list(
             ScopeMapping.objects.filter(provider=provider).values_list("scope_name", flat=True)
         )
@@ -69,8 +71,14 @@ class ProviderInfoView(View):
             "revocation_endpoint": self.request.build_absolute_uri(
                 reverse("authentik_providers_oauth2:token-revoke")
             ),
-            "device_authorization_endpoint": self.request.build_absolute_uri(
-                reverse("authentik_providers_oauth2:device")
+            **(
+                {}
+                if brand.flow_device_code_id is None
+                else {
+                    "device_authorization_endpoint": self.request.build_absolute_uri(
+                        reverse("authentik_providers_oauth2:device")
+                    ),
+                }
             ),
             "backchannel_logout_supported": True,
             "backchannel_logout_session_supported": True,
@@ -101,7 +109,13 @@ class ProviderInfoView(View):
                 GRANT_TYPE_IMPLICIT,
                 GRANT_TYPE_CLIENT_CREDENTIALS,
                 GRANT_TYPE_PASSWORD,
-                GRANT_TYPE_DEVICE_CODE,
+                *(
+                    []
+                    if brand.flow_device_code_id is None
+                    else [
+                        GRANT_TYPE_DEVICE_CODE,
+                    ]
+                ),
             ],
             "id_token_signing_alg_values_supported": [supported_alg],
             # See: http://openid.net/specs/openid-connect-core-1_0.html#SubjectIDTypes
@@ -155,7 +169,7 @@ class ProviderInfoView(View):
 
     def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         """OpenID-compliant Provider Info"""
-        return JsonResponse(self.get_info(self.provider), json_dumps_params={"indent": 2})
+        return JsonResponse(self.get_info(request, self.provider), json_dumps_params={"indent": 2})
 
     def dispatch(
         self, request: HttpRequest, application_slug: str, *args: Any, **kwargs: Any
