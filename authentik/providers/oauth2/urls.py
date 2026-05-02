@@ -16,6 +16,7 @@ from authentik.providers.oauth2.views.end_session import EndSessionView
 from authentik.providers.oauth2.views.introspection import TokenIntrospectionView
 from authentik.providers.oauth2.views.jwks import JWKSView
 from authentik.providers.oauth2.views.provider import ProviderInfoView
+from authentik.providers.oauth2.views.pushed_authorization import PushedAuthorizationView
 from authentik.providers.oauth2.views.token import TokenView
 from authentik.providers.oauth2.views.token_revoke import TokenRevokeView
 from authentik.providers.oauth2.views.userinfo import UserInfoView
@@ -25,6 +26,11 @@ urlpatterns = [
         "authorize/",
         AuthorizationFlowInitView.as_view(),
         name="authorize",
+    ),
+    path(
+        "pushed-authorization/",
+        PushedAuthorizationView.as_view(),
+        name="pushed-authorization",
     ),
     path("token/", TokenView.as_view(), name="token"),
     path("device/", DeviceView.as_view(), name="device"),

@@ -131,6 +131,18 @@ export interface PatchedOAuth2ProviderRequest {
      */
     encryptionKey?: string | null;
     /**
+     * Whether to require clients using Pushed Authorization Request (RFC 9126) to pass parameters to authorize flow.
+     * @type {boolean}
+     * @memberof PatchedOAuth2ProviderRequest
+     */
+    requirePushedAuthorizationRequests?: boolean;
+    /**
+     * Whether to allow any Redirect URIs with Pushed Authorization Request.
+     * @type {boolean}
+     * @memberof PatchedOAuth2ProviderRequest
+     */
+    pushedAuthorizationAllowAnyRedirectUris?: boolean;
+    /**
      *
      * @type {Array<RedirectURIRequest>}
      * @memberof PatchedOAuth2ProviderRequest
@@ -224,6 +236,14 @@ export function PatchedOAuth2ProviderRequestFromJSONTyped(
                 : json["include_claims_in_id_token"],
         signingKey: json["signing_key"] == null ? undefined : json["signing_key"],
         encryptionKey: json["encryption_key"] == null ? undefined : json["encryption_key"],
+        requirePushedAuthorizationRequests:
+            json["require_pushed_authorization_requests"] == null
+                ? undefined
+                : json["require_pushed_authorization_requests"],
+        pushedAuthorizationAllowAnyRedirectUris:
+            json["pushed_authorization_allow_any_redirect_uris"] == null
+                ? undefined
+                : json["pushed_authorization_allow_any_redirect_uris"],
         redirectUris:
             json["redirect_uris"] == null
                 ? undefined
@@ -275,6 +295,9 @@ export function PatchedOAuth2ProviderRequestToJSONTyped(
         include_claims_in_id_token: value["includeClaimsInIdToken"],
         signing_key: value["signingKey"],
         encryption_key: value["encryptionKey"],
+        require_pushed_authorization_requests: value["requirePushedAuthorizationRequests"],
+        pushed_authorization_allow_any_redirect_uris:
+            value["pushedAuthorizationAllowAnyRedirectUris"],
         redirect_uris:
             value["redirectUris"] == null
                 ? undefined

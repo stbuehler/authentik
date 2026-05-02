@@ -18036,9 +18036,17 @@ paths:
         explode: true
         style: form
       - in: query
+        name: pushed_authorization_allow_any_redirect_uris
+        schema:
+          type: boolean
+      - in: query
         name: refresh_token_validity
         schema:
           type: string
+      - in: query
+        name: require_pushed_authorization_requests
+        schema:
+          type: boolean
       - $ref: '#/components/parameters/QuerySearch'
       - in: query
         name: signing_key
@@ -44075,6 +44083,16 @@ components:
           nullable: true
           description: Key used to encrypt the tokens. When set, tokens will be encrypted
             and returned as JWEs.
+        require_pushed_authorization_requests:
+          type: boolean
+          title: Require Pushed Authorization Request
+          description: Whether to require clients using Pushed Authorization Request
+            (RFC 9126) to pass parameters to authorize flow.
+        pushed_authorization_allow_any_redirect_uris:
+          type: boolean
+          title: Allow any Redirect URIs with Pushed Authorization Request
+          description: Whether to allow any Redirect URIs with Pushed Authorization
+            Request.
         redirect_uris:
           type: array
           items:
@@ -44205,6 +44223,16 @@ components:
           nullable: true
           description: Key used to encrypt the tokens. When set, tokens will be encrypted
             and returned as JWEs.
+        require_pushed_authorization_requests:
+          type: boolean
+          title: Require Pushed Authorization Request
+          description: Whether to require clients using Pushed Authorization Request
+            (RFC 9126) to pass parameters to authorize flow.
+        pushed_authorization_allow_any_redirect_uris:
+          type: boolean
+          title: Allow any Redirect URIs with Pushed Authorization Request
+          description: Whether to allow any Redirect URIs with Pushed Authorization
+            Request.
         redirect_uris:
           type: array
           items:
@@ -49824,6 +49852,16 @@ components:
           nullable: true
           description: Key used to encrypt the tokens. When set, tokens will be encrypted
             and returned as JWEs.
+        require_pushed_authorization_requests:
+          type: boolean
+          title: Require Pushed Authorization Request
+          description: Whether to require clients using Pushed Authorization Request
+            (RFC 9126) to pass parameters to authorize flow.
+        pushed_authorization_allow_any_redirect_uris:
+          type: boolean
+          title: Allow any Redirect URIs with Pushed Authorization Request
+          description: Whether to allow any Redirect URIs with Pushed Authorization
+            Request.
         redirect_uris:
           type: array
           items:

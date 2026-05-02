@@ -310,3 +310,31 @@ class BearerTokenError(OAuth2Error):
         error_tuple = self.errors.get(code, ("", ""))
         self.description = error_tuple[0]
         self.status = error_tuple[1]
+
+
+class PushedAuthorizationRequestError(OAuth2Error):
+    """Pushed Authorization Request Errors"""
+
+    errors = {
+        "invalid_request": "The request is otherwise malformed",
+        "unauthorized_client": (
+            "The client is not authorized to request an authorization code using this method"
+        ),
+        "slow_down": (
+            'A variant of "authorization_pending", the authorization request is'
+            "still pending and polling should continue, but the interval MUST"
+            "be increased by 5 seconds for this and all subsequent requests."
+        ),
+    }
+
+    def __init__(
+        self,
+        error: str,
+        description: str | None = None,
+    ):
+        super().__init__()
+        self.error = error
+        if description:
+            self.description = description
+        else:
+            self.description = self.errors[error]

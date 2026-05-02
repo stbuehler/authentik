@@ -451,7 +451,9 @@ export interface ProvidersOauth2ListRequest {
     page?: number;
     pageSize?: number;
     propertyMappings?: Array<string>;
+    pushedAuthorizationAllowAnyRedirectUris?: boolean;
     refreshTokenValidity?: string;
+    requirePushedAuthorizationRequests?: boolean;
     search?: string;
     signingKey?: string;
     subMode?: SubModeEnum;
@@ -4589,8 +4591,18 @@ export class ProvidersApi extends runtime.BaseAPI {
             queryParameters["property_mappings"] = requestParameters["propertyMappings"];
         }
 
+        if (requestParameters["pushedAuthorizationAllowAnyRedirectUris"] != null) {
+            queryParameters["pushed_authorization_allow_any_redirect_uris"] =
+                requestParameters["pushedAuthorizationAllowAnyRedirectUris"];
+        }
+
         if (requestParameters["refreshTokenValidity"] != null) {
             queryParameters["refresh_token_validity"] = requestParameters["refreshTokenValidity"];
+        }
+
+        if (requestParameters["requirePushedAuthorizationRequests"] != null) {
+            queryParameters["require_pushed_authorization_requests"] =
+                requestParameters["requirePushedAuthorizationRequests"];
         }
 
         if (requestParameters["search"] != null) {

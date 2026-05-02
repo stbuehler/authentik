@@ -185,6 +185,18 @@ export interface OAuth2Provider {
      */
     encryptionKey?: string | null;
     /**
+     * Whether to require clients using Pushed Authorization Request (RFC 9126) to pass parameters to authorize flow.
+     * @type {boolean}
+     * @memberof OAuth2Provider
+     */
+    requirePushedAuthorizationRequests?: boolean;
+    /**
+     * Whether to allow any Redirect URIs with Pushed Authorization Request.
+     * @type {boolean}
+     * @memberof OAuth2Provider
+     */
+    pushedAuthorizationAllowAnyRedirectUris?: boolean;
+    /**
      *
      * @type {Array<RedirectURI>}
      * @memberof OAuth2Provider
@@ -307,6 +319,14 @@ export function OAuth2ProviderFromJSONTyped(
                 : json["include_claims_in_id_token"],
         signingKey: json["signing_key"] == null ? undefined : json["signing_key"],
         encryptionKey: json["encryption_key"] == null ? undefined : json["encryption_key"],
+        requirePushedAuthorizationRequests:
+            json["require_pushed_authorization_requests"] == null
+                ? undefined
+                : json["require_pushed_authorization_requests"],
+        pushedAuthorizationAllowAnyRedirectUris:
+            json["pushed_authorization_allow_any_redirect_uris"] == null
+                ? undefined
+                : json["pushed_authorization_allow_any_redirect_uris"],
         redirectUris: (json["redirect_uris"] as Array<any>).map(RedirectURIFromJSON),
         logoutUri: json["logout_uri"] == null ? undefined : json["logout_uri"],
         logoutMethod:
@@ -366,6 +386,9 @@ export function OAuth2ProviderToJSONTyped(
         include_claims_in_id_token: value["includeClaimsInIdToken"],
         signing_key: value["signingKey"],
         encryption_key: value["encryptionKey"],
+        require_pushed_authorization_requests: value["requirePushedAuthorizationRequests"],
+        pushed_authorization_allow_any_redirect_uris:
+            value["pushedAuthorizationAllowAnyRedirectUris"],
         redirect_uris: (value["redirectUris"] as Array<any>).map(RedirectURIToJSON),
         logout_uri: value["logoutUri"],
         logout_method: OAuth2ProviderLogoutMethodEnumToJSON(value["logoutMethod"]),

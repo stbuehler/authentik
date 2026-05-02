@@ -69,6 +69,9 @@ class ProviderInfoView(View):
             "revocation_endpoint": self.request.build_absolute_uri(
                 reverse("authentik_providers_oauth2:token-revoke")
             ),
+            "pushed_authorization_request_endpoint": self.request.build_absolute_uri(
+                reverse("authentik_providers_oauth2:pushed-authorization")
+            ),
             "device_authorization_endpoint": self.request.build_absolute_uri(
                 reverse("authentik_providers_oauth2:device")
             ),
@@ -117,6 +120,7 @@ class ProviderInfoView(View):
             "claims_supported": self.get_claims(provider),
             "claims_parameter_supported": False,
             "code_challenge_methods_supported": [PKCE_METHOD_PLAIN, PKCE_METHOD_S256],
+            "require_pushed_authorization_requests": provider.require_pushed_authorization_requests,
         }
         if provider.encryption_key:
             config["id_token_encryption_alg_values_supported"] = ["RSA-OAEP-256"]

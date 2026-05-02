@@ -261,6 +261,22 @@ export function renderForm({
                         ${msg("Grant types this provider may use.")}
                     </p>
                 </ak-form-element-horizontal>
+                <ak-switch-input
+                    name="requirePushedAuthorizationRequests"
+                    label=${msg("Require Pushed Authorization Request")}
+                    ?checked=${provider.requirePushedAuthorizationRequests ?? false}
+                    help=${msg(
+                        "Whether to require clients using Pushed Authorization Request (RFC 9126) to pass parameters to authorize flow.",
+                    )}
+                ></ak-switch-input>
+                <ak-switch-input
+                    name="pushedAuthorizationAllowAnyRedirectUris"
+                    label=${msg("Allow any Redirect URIs with Pushed Authorization Request")}
+                    ?checked=${provider.pushedAuthorizationAllowAnyRedirectUris ?? false}
+                    help=${msg(
+                        "Whether to allow any Redirect URIs with Pushed Authorization Request.",
+                    )}
+                ></ak-switch-input>
                 <ak-form-element-horizontal
                     label=${msg("Redirect URIs/Origins (RegEx)")}
                     name="redirectUris"

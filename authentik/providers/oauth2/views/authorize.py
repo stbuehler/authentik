@@ -59,6 +59,7 @@ from authentik.providers.oauth2.models import (
     AuthorizationCode,
     GrantType,
     OAuth2Provider,
+    PushedAuthorizationData,
     RedirectURIMatchingMode,
     ResponseMode,
     ResponseTypes,
@@ -94,7 +95,9 @@ class OAuthAuthorizationParams:
     prompt: set[str]
     grant_type: str
 
-    provider: OAuth2Provider = field(default_factory=OAuth2Provider)
+    provider: OAuth2Provider = field(init=False)
+    stored_provider: InitVar[OAuth2Provider | None] = None
+    is_pushed_authorization: bool = False
 
     request: str | None = None
 
@@ -106,7 +109,9 @@ class OAuthAuthorizationParams:
     github_compat: InitVar[bool] = False
 
     @staticmethod
-    def from_request(request: HttpRequest, github_compat=False) -> OAuthAuthorizationParams:
+    def from_request(
+        request: HttpRequest, *, github_compat=False, is_pushed_authorization=False
+    ) -> OAuthAuthorizationParams:
         """
         Get all the params used by the Authorization Code Flow
         (and also for the Implicit and Hybrid).
@@ -116,8 +121,21 @@ class OAuthAuthorizationParams:
         # Because in this endpoint we handle both GET
         # and POST request.
         query_dict = request.POST if request.method == "POST" else request.GET
-        state = query_dict.get("state")
         redirect_uri = query_dict.get("redirect_uri", "")
+
+        request_uri = query_dict.get("request_uri")
+        if request_uri:
+            # only allowed for Pushed Authorization Request
+            urn_local = PushedAuthorizationData.urn_local_for_request_uri(request_uri)
+            if urn_local is None or is_pushed_authorization:
+                # invalid request_uri "type" (probably http/https) - return as not supported
+                raise AuthorizeError(redirect_uri, "request_uri_not_supported", "", "")
+            par_data = PushedAuthorizationData.objects.filter(urn_local=urn_local).get()
+            if par_data is None:
+                raise AuthorizeError(redirect_uri, "invalid_request_uri", "", "")
+            return par_data.data
+
+        state = query_dict.get("state")
 
         response_type = query_dict.get("response_type", "")
 
@@ -136,6 +154,7 @@ class OAuthAuthorizationParams:
             state=state,
             nonce=query_dict.get("nonce"),
             prompt=ALLOWED_PROMPT_PARAMS.intersection(set(query_dict.get("prompt", "").split())),
+            is_pushed_authorization=is_pushed_authorization,
             request=query_dict.get("request", None),
             max_age=int(max_age) if max_age else None,
             code_challenge=query_dict.get("code_challenge"),
@@ -143,13 +162,25 @@ class OAuthAuthorizationParams:
             github_compat=github_compat,
         )
 
-    def __post_init__(self, github_compat=False):
-        self.provider: OAuth2Provider = OAuth2Provider.objects.filter(
-            client_id=self.client_id
-        ).first()
-        if not self.provider:
-            LOGGER.warning("Invalid client identifier", client_id=self.client_id)
-            raise ClientIdError(client_id=self.client_id)
+    def __post_init__(self, github_compat: bool, stored_provider: OAuth2Provider | None) -> None:
+        if stored_provider:
+            self.provider = stored_provider
+        else:
+            provider: OAuth2Provider | None = OAuth2Provider.objects.filter(
+                client_id=self.client_id
+            ).first()
+            if not provider:
+                LOGGER.warning("Invalid client identifier", client_id=self.client_id)
+                raise ClientIdError(client_id=self.client_id)
+            self.provider = provider
+        if not self.is_pushed_authorization and self.provider.require_pushed_authorization_requests:
+            raise AuthorizeError(
+                self.redirect_uri,
+                "invalid_request",
+                self.grant_type,
+                self.state,
+                "The Authorization Server requires using Pushed Authorization Request",
+            )
         self.check_redirect_uri()
         self.check_grant()
         self.check_scope(github_compat)
@@ -194,6 +225,7 @@ class OAuthAuthorizationParams:
     def check_redirect_uri(self):
         """Redirect URI validation."""
         allowed_redirect_urls = self.provider.authorization_redirect_uris
+
         if not self.redirect_uri:
             LOGGER.warning("Missing redirect uri.")
             raise RedirectUriError("", allowed_redirect_urls).with_cause("redirect_uri_missing")
@@ -203,6 +235,12 @@ class OAuthAuthorizationParams:
             raise RedirectUriError(self.redirect_uri, allowed_redirect_urls).with_cause(
                 "redirect_uri_forbidden_scheme"
             )
+
+        if (
+            self.is_pushed_authorization
+            and self.provider.pushed_authorization_allow_any_redirect_uris
+        ):
+            return
 
         match_found = False
         for allowed in allowed_redirect_urls:
@@ -361,6 +399,8 @@ class AuthorizationFlowInitView(PolicyAccessView):
                 bad_request_message(self.request, error.description, title=error.error)
             ) from None
         except OAuth2Provider.DoesNotExist:
+            raise Http404 from None
+        except PushedAuthorizationData.DoesNotExist:
             raise Http404 from None
         if PROMPT_NONE in self.params.prompt and not self.request.user.is_authenticated:
             # When "prompt" is set to "none" but the user is not logged in, show an error message

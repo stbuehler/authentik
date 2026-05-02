@@ -59,6 +59,7 @@ from authentik.sources.oauth.models import OAuthSource
 
 if TYPE_CHECKING:
     from authentik.providers.oauth2.id_token import IDToken
+    from authentik.providers.oauth2.views.authorize import OAuthAuthorizationParams
 
 LOGGER = get_logger()
 
@@ -222,6 +223,19 @@ class OAuth2Provider(WebfingerProvider, Provider):
         blank=True,
         verbose_name=_("Client Secret"),
         default=generate_client_secret,
+    )
+    require_pushed_authorization_requests = models.BooleanField(
+        default=False,
+        verbose_name=_("Require Pushed Authorization Request"),
+        help_text=_(
+            "Whether to require clients using Pushed Authorization Request (RFC 9126) "
+            "to pass parameters to authorize flow."
+        ),
+    )
+    pushed_authorization_allow_any_redirect_uris = models.BooleanField(
+        default=False,
+        verbose_name=_("Allow any Redirect URIs with Pushed Authorization Request"),
+        help_text=_("Whether to allow any Redirect URIs with Pushed Authorization Request."),
     )
     _redirect_uris = models.JSONField(
         default=list,
@@ -662,3 +676,53 @@ class DeviceToken(InternallyManagedMixin, ExpiringModel):
 
     def __str__(self):
         return f"Device Token for {self.provider_id}"
+
+
+_PAR_URN_PREFIX = "urn:ietf:params:oauth:request_uri:"
+
+
+class PushedAuthorizationData(InternallyManagedMixin, ExpiringModel):
+    """Temporary data for Pushed Authorization flow"""
+
+    urn_local = models.TextField(default=generate_id, unique=True)
+    _provider = models.ForeignKey(OAuth2Provider, on_delete=models.CASCADE)
+    _data = models.TextField(default="", verbose_name=_("Data"))
+
+    @staticmethod
+    def urn_local_for_request_uri(request_uri: str) -> str | None:
+        if request_uri.startswith(_PAR_URN_PREFIX):
+            return request_uri[len(_PAR_URN_PREFIX) :]
+        return None
+
+    @property
+    def request_uri(self) -> str:
+        return _PAR_URN_PREFIX + self.urn_local
+
+    @property
+    def data(self) -> OAuthAuthorizationParams:
+        """Load ID Token from json"""
+        from authentik.providers.oauth2.views.authorize import OAuthAuthorizationParams
+
+        raw_data = json.loads(self._data)
+        raw_data["stored_provider"] = self._provider
+        raw_data["client_Id"] = self._provider.client_id
+        raw_data["scope"] = set(raw_data["scope"])
+        raw_data["prompt"] = set(raw_data["prompt"])
+        data = from_dict(OAuthAuthorizationParams, raw_data)
+        return data
+
+    @data.setter
+    def data(self, value: OAuthAuthorizationParams):
+        raw_data = asdict(value)
+        raw_data["scope"] = sorted(raw_data["scope"])
+        raw_data["prompt"] = sorted(raw_data["prompt"])
+        self._provider = raw_data.pop("provider")
+        self._data = json.dumps(raw_data)
+
+    class Meta:
+        verbose_name = _("Pushed Authorization Request Data")
+        verbose_name_plural = _("Pushed Authorizations Request Data")
+        indexes = ExpiringModel.Meta.indexes
+
+    def __str__(self):
+        return f"Pushed Authorization Request Data for {self.provider_id}"
