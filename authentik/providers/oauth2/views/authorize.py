@@ -198,6 +198,12 @@ class OAuthAuthorizationParams:
             LOGGER.warning("Missing redirect uri.")
             raise RedirectUriError("", allowed_redirect_urls).with_cause("redirect_uri_missing")
 
+        # Check against forbidden schemes
+        if urlparse(self.redirect_uri).scheme in FORBIDDEN_URI_SCHEMES:
+            raise RedirectUriError(self.redirect_uri, allowed_redirect_urls).with_cause(
+                "redirect_uri_forbidden_scheme"
+            )
+
         match_found = False
         for allowed in allowed_redirect_urls:
             if allowed.matching_mode == RedirectURIMatchingMode.STRICT:
@@ -219,11 +225,6 @@ class OAuthAuthorizationParams:
         if not match_found:
             raise RedirectUriError(self.redirect_uri, allowed_redirect_urls).with_cause(
                 "redirect_uri_no_match"
-            )
-        # Check against forbidden schemes
-        if urlparse(self.redirect_uri).scheme in FORBIDDEN_URI_SCHEMES:
-            raise RedirectUriError(self.redirect_uri, allowed_redirect_urls).with_cause(
-                "redirect_uri_forbidden_scheme"
             )
 
     def check_scope(self, github_compat=False):
