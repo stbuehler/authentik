@@ -216,8 +216,6 @@ class TokenParams:
             LOGGER.warning("Missing authorization code")
             raise TokenError("invalid_grant")
 
-        self.__check_redirect_uri(request)
-
         self.authorization_code = AuthorizationCode.objects.filter(code=raw_code).first()
         if not self.authorization_code:
             LOGGER.warning("Code does not exist", code=raw_code)
@@ -232,6 +230,14 @@ class TokenParams:
 
         if self.authorization_code.provider != self.provider or self.authorization_code.is_expired:
             LOGGER.warning("Invalid code: invalid client or code has expired")
+            raise TokenError("invalid_grant")
+
+        if not self.authorization_code.redirect_uri:
+            # old AuthorizationCode: check using old logic.
+            # newer codes should be created with non-empty redirect_uri.
+            self.__check_redirect_uri()
+        elif self.authorization_code.redirect_uri != self.redirect_uri:
+            LOGGER.warning("Invalid redirect_uri (doesn't match original uri from authentication)")
             raise TokenError("invalid_grant")
 
         # Validate PKCE parameters.

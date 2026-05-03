@@ -323,6 +323,7 @@ class OAuthAuthorizationParams:
             scope=self.scope,
             nonce=self.nonce,
             session=request.session["authenticatedsession"],
+            redirect_uri=self.redirect_uri,
         )
 
         if self.code_challenge and self.code_challenge_method:

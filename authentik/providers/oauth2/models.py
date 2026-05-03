@@ -517,6 +517,7 @@ class AuthorizationCode(InternallyManagedMixin, SerializerModel, ExpiringModel, 
     code_challenge_method = models.CharField(
         max_length=255, null=True, verbose_name=_("Code Challenge Method")
     )
+    redirect_uri = models.TextField(default="", verbose_name=_("Redirect URI"))
 
     class Meta:
         verbose_name = _("Authorization Code")
