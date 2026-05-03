@@ -373,8 +373,7 @@ class AuthorizationFlowInitView(PolicyAccessView):
             raise RequestValidationError(error.get_response(self.request))
 
     def resolve_provider_application(self):
-        client_id = self.request.GET.get("client_id")
-        self.provider = get_object_or_404(OAuth2Provider, client_id=client_id)
+        self.provider = self.params.provider
         self.application = self.provider.application
 
     def modify_flow_context(self, flow: Flow, context: dict[str, Any]) -> dict[str, Any]:
